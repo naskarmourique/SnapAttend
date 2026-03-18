@@ -1,0 +1,11 @@
+fastapi[all]
+uvicorn
+sqlalchemy
+pymysql
+opencv-python
+mediapipe
+numpy
+python-multipart
+python-dotenv
+deepface
+tf-keras
