@@ -9,6 +9,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+logs
+*.log
 
 # Python
 __pycache__/
@@ -30,12 +32,17 @@ backend/uploads/students/*
 !backend/uploads/students/.gitkeep
 backend/*.pkl
 
-# Editor
+# Editor & System
 .vscode/
 .idea/
 .DS_Store
 *.swp
 *.swo
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
 # Misc
 .gemini/
