@@ -1,13 +1,15 @@
 import { motion } from "framer-motion";
 import GlassCard from "@/components/GlassCard";
 import AppLayout from "@/components/AppLayout";
-import { Calendar, Table, User, Camera, Play, Square, ChevronLeft } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Calendar as CalendarIcon, Table, User, Camera, Play, Square, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { studentApi, attendanceApi, recognitionApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import StatusIndicator from "@/components/StatusIndicator";
 import GlassButton from "@/components/GlassButton";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 export default function StudentPanel() {
   const navigate = useNavigate();
@@ -59,6 +61,14 @@ export default function StudentPanel() {
       toast.error("Failed to control camera.");
     }
   };
+
+  // Convert attendance dates string to Date objects for the calendar
+  const attendanceDates = useMemo(() => {
+    return attendance.map(log => {
+      const [year, month, day] = log.date.split('-').map(Number);
+      return new Date(year, month - 1, day);
+    });
+  }, [attendance]);
 
   if (loading) {
     return (
@@ -176,11 +186,11 @@ export default function StudentPanel() {
                 {role === "admin" ? "Attendance Logs" : "My History"}
               </h2>
               <div className="flex gap-1 glass-card p-1">
-                <button onClick={() => setView("table")} className={`p-2 rounded-xl transition-all ${view === "table" ? "gradient-accent text-white" : "text-muted-foreground hover:text-foreground"}`}>
+                <button onClick={() => setView("table")} className={cn("p-2 rounded-xl transition-all", view === "table" ? "gradient-accent text-white" : "text-muted-foreground hover:text-foreground")}>
                   <Table className="h-4 w-4" />
                 </button>
-                <button onClick={() => setView("calendar")} className={`p-2 rounded-xl transition-all ${view === "calendar" ? "gradient-accent text-white" : "text-muted-foreground hover:text-foreground"}`}>
-                  <Calendar className="h-4 w-4" />
+                <button onClick={() => setView("calendar")} className={cn("p-2 rounded-xl transition-all", view === "calendar" ? "gradient-accent text-white" : "text-muted-foreground hover:text-foreground")}>
+                  <CalendarIcon className="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -191,7 +201,7 @@ export default function StudentPanel() {
               </div>
             ) : view === "table" ? (
               <div className="space-y-2">
-                <div className="grid grid-cols-3 text-xs font-semibold text-muted-foreground pb-2 border-b border-border/30 px-2">
+                <div className="grid grid-cols-3 text-xs font-bold text-muted-foreground pb-2 border-b border-border/30 px-2">
                   <span>Date</span>
                   <span>Time</span>
                   <span className="text-right">Status</span>
@@ -207,16 +217,36 @@ export default function StudentPanel() {
                     <span className="text-foreground">{entry.date}</span>
                     <span className="text-muted-foreground">{entry.time}</span>
                     <span className="text-right">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400">
-                        PRESENT
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/20 text-green-400 uppercase">
+                        Present
                       </span>
                     </span>
                   </motion.div>
                 ))}
               </div>
             ) : (
-              <div className="p-4 text-center text-muted-foreground italic">
-                Calendar view coming soon.
+              <div className="flex flex-col items-center justify-center p-4">
+                <Calendar
+                  mode="multiple"
+                  selected={attendanceDates}
+                  className="rounded-2xl border border-border/50 bg-background/20 backdrop-blur-md"
+                  modifiers={{
+                    present: attendanceDates
+                  }}
+                  modifiersClassNames={{
+                    present: "bg-green-500/20 text-green-400 font-bold border-green-500/50"
+                  }}
+                />
+                <div className="mt-6 flex gap-6 text-xs">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/50" />
+                    <span className="text-muted-foreground">Present</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-accent border border-border" />
+                    <span className="text-muted-foreground">Today</span>
+                  </div>
+                </div>
               </div>
             )}
           </GlassCard>
