@@ -39,6 +39,7 @@ export const authApi = {
 export const studentApi = {
   register: (formData: FormData) => api.post('/students/register', formData),
   getAll: () => api.get('/students/'),
+  getMyProfile: () => api.get('/students/me'),
   delete: (id: number) => api.delete(`/students/${id}`),
 };
 

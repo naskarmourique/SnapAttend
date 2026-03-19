@@ -16,7 +16,10 @@
 - 📸 **Biometric Burst Mode**: Captures multiple samples during registration to create a robust "Master Embedding" for every student.
 - 📊 **Live Analytics**: Instant dashboard updates for daily and monthly attendance rates.
 - 🌓 **Neon Liquid UI**: A beautiful, modern interface with dark/light mode support and fluid animations.
-- 🛡️ **Anti-Spoofing**: Built-in liveness detection to prevent photo-based attendance fraud.
+- 🛡️ **Role-Based Access Control (RBAC)**: Dedicated entry points and permissions for Admins and Students.
+- 🌐 **Modern Landing Page**: A professional, public-facing introduction to the platform.
+- 📊 **Smart Analytics & Reporting**: Automated daily/monthly reporting with CSV export capabilities.
+- 🌓 **Persistent Theme Engine**: Seamless transition between dark and light modes that remembers user preferences.
 
 ---
 

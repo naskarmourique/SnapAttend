@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config.database import engine, Base, SessionLocal
-from routes import students, attendance, analytics, recognition, auth
+from routes import students, attendance, analytics, recognition, auth, student_me
 from models import admin_model
 from services.face_service import face_service
 import uvicorn
@@ -57,6 +57,7 @@ app.add_middleware(
 
 # Routers
 app.include_router(auth.router)
+app.include_router(student_me.router)
 app.include_router(students.router)
 app.include_router(attendance.router)
 app.include_router(analytics.router)

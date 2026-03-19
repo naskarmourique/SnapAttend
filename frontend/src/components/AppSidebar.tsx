@@ -15,23 +15,30 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/student", label: "Student Panel", icon: User },
-  { to: "/admin", label: "Admin Panel", icon: ShieldCheck },
+const adminItems = [
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/admin", label: "Student Panel", icon: User },
   { to: "/registration", label: "Registration", icon: Camera },
+];
+
+const studentItems = [
+  { to: "/student", label: "My Attendance", icon: User },
 ];
 
 export default function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const role = localStorage.getItem("snapattend_role") || "student";
 
   const handleLogout = () => {
     localStorage.removeItem("snapattend_token");
+    localStorage.removeItem("snapattend_role");
     toast.success("Logged out successfully");
-    navigate("/login");
+    navigate("/");
   };
+
+  const navItems = role === "admin" ? adminItems : studentItems;
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-background/80 backdrop-blur-xl">

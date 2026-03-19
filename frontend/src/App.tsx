@@ -8,7 +8,9 @@ import Dashboard from "./pages/Dashboard";
 import StudentPanel from "./pages/StudentPanel";
 import AdminPanel from "./pages/AdminPanel";
 import StudentRegistration from "./pages/StudentRegistration";
-import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
+import StudentLogin from "./pages/StudentLogin";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./components/AppLayout";
 
@@ -16,7 +18,13 @@ const queryClient = new QueryClient();
 
 const ProtectedRoute = () => {
   const token = localStorage.getItem("snapattend_token");
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token) return <Navigate to="/" replace />;
+  return <Outlet />;
+};
+
+const AdminRoute = () => {
+  const role = localStorage.getItem("snapattend_role");
+  if (role !== "admin") return <Navigate to="/student" replace />;
   return <Outlet />;
 };
 
@@ -34,14 +42,25 @@ const App = () => (
         <Sonner position="top-right" expand={false} richColors />
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            {/* Public Landing Page */}
+            <Route path="/" element={<LandingPage />} />
             
+            {/* Direct Login Routes (No more auto-redirect away from login) */}
+            <Route path="/login/admin" element={<AdminLogin />} />
+            <Route path="/login/student" element={<StudentLogin />} />
+            
+            {/* Protected Application Area */}
             <Route element={<ProtectedRoute />}>
               <Route element={<LayoutWrapper />}>
-                <Route path="/" element={<Dashboard />} />
+                {/* Admin Only Routes */}
+                <Route element={<AdminRoute />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="/registration" element={<StudentRegistration />} />
+                </Route>
+                
+                {/* Common/Student Routes */}
                 <Route path="/student" element={<StudentPanel />} />
-                <Route path="/admin" element={<AdminPanel />} />
-                <Route path="/registration" element={<StudentRegistration />} />
               </Route>
             </Route>
 

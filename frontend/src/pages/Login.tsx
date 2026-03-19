@@ -28,12 +28,13 @@ export default function Login() {
       
       if (res.data.access_token) {
         localStorage.setItem("snapattend_token", res.data.access_token);
-        console.log("Token saved. Navigating to dashboard...");
-        toast.success("Login successful!");
+        localStorage.setItem("snapattend_role", res.data.role);
+        console.log("Token and Role saved. Navigating...");
+        toast.success(`Login successful! Welcome ${res.data.role}.`);
         
-        // Force a small delay and use window.location for absolute redirection
+        // Use window.location for absolute redirection to clear any state
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = res.data.role === "admin" ? "/dashboard" : "/student";
         }, 500);
       } else {
         console.error("No token in response");
