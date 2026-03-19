@@ -46,7 +46,12 @@
 - Node.js 18+
 - A working webcam
 
-### 2. Backend Setup
+### 2. Database Setup
+You can use the provided SQL file to set up your MySQL/MariaDB database quickly:
+1. Import `snapattend_db.sql` into your database manager (XAMPP/phpMyAdmin/MySQL Workbench).
+2. Ensure your backend `.env` or `database.py` configuration matches your database credentials.
+
+### 3. Backend Setup
 ```bash
 cd backend
 python -m venv venv
