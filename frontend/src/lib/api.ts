@@ -1,15 +1,40 @@
 import axios from 'axios';
-import { toast } from 'sonner';
 
 const API_BASE_URL = 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // 60 seconds timeout (Face processing can take a while)
+  timeout: 60000,
 });
 
-// Removed the naive retry interceptor because it causes double-submissions on POST requests
-// when the server takes longer than the timeout to respond.
+// Auth interceptor
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('snapattend_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor for session expiry
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('snapattend_token');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const authApi = {
+  login: (formData: FormData) => api.post('/auth/login', formData),
+  getMe: () => api.get('/auth/me'),
+  setupRoot: () => api.post('/auth/setup-root'),
+};
 
 export const studentApi = {
   register: (formData: FormData) => api.post('/students/register', formData),
@@ -20,6 +45,8 @@ export const studentApi = {
 export const attendanceApi = {
   getAll: () => api.get('/attendance/'),
   getStudent: (id: number) => api.get(`/attendance/${id}`),
+  markManual: (roll: string) => api.post(`/attendance/manual?roll_number=${roll}`),
+  export: () => `${API_BASE_URL}/attendance/export`,
 };
 
 export const analyticsApi = {
@@ -34,6 +61,5 @@ export const recognitionApi = {
   getStatus: () => api.get('/recognition/status'),
   startCamera: () => api.post('/recognition/camera/start'),
   stopCamera: () => api.post('/recognition/camera/stop'),
-  getSnapshot: () => `${API_BASE_URL}/recognition/snapshot?t=${Date.now()}`,
+  getSnapshot: () => `${API_BASE_URL}/recognition/snapshot`,
 };
-

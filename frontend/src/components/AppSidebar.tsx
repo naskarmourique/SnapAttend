@@ -1,4 +1,4 @@
-import { NavLink as RouterNavLink, Link } from "react-router-dom";
+import { NavLink as RouterNavLink, Link, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard,
@@ -10,8 +10,10 @@ import {
   ScanFace,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -23,6 +25,13 @@ const navItems = [
 export default function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("snapattend_token");
+    toast.success("Logged out successfully");
+    navigate("/login");
+  };
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-background/80 backdrop-blur-xl">
@@ -42,10 +51,7 @@ export default function AppSidebar() {
           <RouterNavLink
             key={item.to}
             to={item.to}
-            onClick={() => {
-              console.log(`Navigating to ${item.to}`);
-              setMobileOpen(false);
-            }}
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-200 relative z-[130] ${
                 isActive
@@ -60,11 +66,11 @@ export default function AppSidebar() {
         ))}
       </nav>
 
-      {/* Theme toggle */}
-      <div className="px-4 pb-6">
+      {/* Footer Actions */}
+      <div className="px-3 pb-6 space-y-2">
         <button
           onClick={toggleTheme}
-          className="glass-card flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 cursor-pointer"
         >
           {theme === "dark" ? (
             <Sun className="h-5 w-5" />
@@ -72,6 +78,14 @@ export default function AppSidebar() {
             <Moon className="h-5 w-5" />
           )}
           <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 w-full px-4 py-3 rounded-2xl text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200 cursor-pointer"
+        >
+          <LogOut className="h-5 w-5" />
+          <span>Logout</span>
         </button>
       </div>
     </div>

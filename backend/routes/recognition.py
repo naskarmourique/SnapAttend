@@ -12,6 +12,8 @@ import cv2
 import numpy as np
 import threading
 
+from routes.auth import get_current_user
+
 router = APIRouter(prefix="/recognition", tags=["Recognition"])
 
 # State variables
@@ -43,8 +45,8 @@ async def recognition_loop(db_session_factory):
             await asyncio.sleep(0.01)
             continue
 
-        # 1. Perform Multi-Face Recognition
-        recognized_results = face_service.recognize_faces(frame)
+        # 1. Perform Multi-Face Recognition (Async)
+        recognized_results = await face_service.recognize_faces(frame)
         
         # 2. Check Liveness for the whole frame (simplification)
         # In a high-end system, we'd check each face's ROI
@@ -94,7 +96,7 @@ async def recognition_loop(db_session_factory):
         await asyncio.sleep(0.01)
 
 @router.post("/camera/start")
-def start_camera():
+def start_camera(current_user: str = Depends(get_current_user)):
     global camera_active
     with state_lock:
         if camera_instance.start():
@@ -103,7 +105,7 @@ def start_camera():
     raise HTTPException(status_code=500, detail="Could not start camera")
 
 @router.post("/camera/stop")
-def stop_camera():
+def stop_camera(current_user: str = Depends(get_current_user)):
     global camera_active, is_running
     with state_lock:
         is_running = False
@@ -112,7 +114,7 @@ def stop_camera():
     return {"message": "Camera stopped"}
 
 @router.post("/start")
-async def start_recognition(background_tasks: BackgroundTasks):
+async def start_recognition(background_tasks: BackgroundTasks, current_user: str = Depends(get_current_user)):
     global is_running, camera_active
     with state_lock:
         if is_running: return {"message": "Already running"}
@@ -124,7 +126,7 @@ async def start_recognition(background_tasks: BackgroundTasks):
     return {"message": "Recognition started"}
 
 @router.post("/stop")
-def stop_recognition():
+def stop_recognition(current_user: str = Depends(get_current_user)):
     global is_running, camera_active
     with state_lock:
         is_running = False
@@ -133,7 +135,7 @@ def stop_recognition():
     return {"message": "Recognition stopped"}
 
 @router.get("/status")
-def recognition_status():
+def recognition_status(current_user: str = Depends(get_current_user)):
     global is_running, camera_active
     return {"is_running": is_running, "camera_active": camera_active}
 

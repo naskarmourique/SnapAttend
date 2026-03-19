@@ -7,7 +7,9 @@ from sqlalchemy import func
 from datetime import date
 import calendar
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+from routes.auth import get_current_user
+
+router = APIRouter(prefix="/analytics", tags=["Analytics"], dependencies=[Depends(get_current_user)])
 
 @router.get("/daily")
 def get_daily_analytics(db: Session = Depends(get_db)):

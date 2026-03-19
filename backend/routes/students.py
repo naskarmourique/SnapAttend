@@ -7,7 +7,9 @@ from utils.encoding import serialize_encoding
 import os
 import shutil
 
-router = APIRouter(prefix="/students", tags=["Students"])
+from routes.auth import get_current_user
+
+router = APIRouter(prefix="/students", tags=["Students"], dependencies=[Depends(get_current_user)])
 
 from typing import List
 
