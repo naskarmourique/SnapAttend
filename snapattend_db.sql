@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS `students` (
   `department` varchar(100) DEFAULT NULL,
   `face_encoding` longblob,
   `image_path` varchar(255) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `roll_number` (`roll_number`),
   KEY `ix_students_id` (`id`),
