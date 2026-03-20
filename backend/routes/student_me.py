@@ -13,6 +13,7 @@ def get_my_profile(db: Session = Depends(get_db), current_user = Depends(get_cur
             "name": current_user.name,
             "roll_number": current_user.roll_number,
             "department": current_user.department,
+            "created_at": current_user.created_at,
             "role": "student"
         }
     elif current_user.role == "admin":

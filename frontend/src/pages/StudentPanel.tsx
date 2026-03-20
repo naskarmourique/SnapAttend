@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import GlassCard from "@/components/GlassCard";
 import AppLayout from "@/components/AppLayout";
-import { Calendar as CalendarIcon, Table, User, Camera, Play, Square, ChevronLeft, CheckCircle2 } from "lucide-react";
+import { Calendar as CalendarIcon, Table, User, Camera, Play, Square, ChevronLeft, CheckCircle2, XCircle } from "lucide-react";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { studentApi, attendanceApi, recognitionApi } from "@/lib/api";
 import { toast } from "sonner";
@@ -64,11 +64,50 @@ export default function StudentPanel() {
 
   // Convert attendance dates string to Date objects for the calendar
   const attendanceDates = useMemo(() => {
-    return attendance.map(log => {
+    const uniqueDates = new Set();
+    const dates = attendance.filter(log => {
+      if (uniqueDates.has(log.date)) return false;
+      uniqueDates.add(log.date);
+      return true;
+    }).map(log => {
       const [year, month, day] = log.date.split('-').map(Number);
       return new Date(year, month - 1, day);
     });
+    // Sort chronologically
+    return dates.sort((a, b) => a.getTime() - b.getTime());
   }, [attendance]);
+
+  // Calculate absent dates (Weekdays with no attendance)
+  const absentDates = useMemo(() => {
+    if (!student?.created_at) return [];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Start from registration date
+    const registrationDate = new Date(student.created_at);
+    registrationDate.setHours(0, 0, 0, 0);
+    
+    const absents: Date[] = [];
+    let current = new Date(registrationDate);
+    
+    while (current < today) {
+      const isWeekend = current.getDay() === 0 || current.getDay() === 6;
+      if (!isWeekend) {
+        const isPresent = attendanceDates.some(d => 
+          d.getDate() === current.getDate() && 
+          d.getMonth() === current.getMonth() && 
+          d.getFullYear() === current.getFullYear()
+        );
+        
+        if (!isPresent) {
+          absents.push(new Date(current));
+        }
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return absents;
+  }, [attendanceDates, student?.created_at]);
 
   if (loading) {
     return (
@@ -227,24 +266,78 @@ export default function StudentPanel() {
             ) : (
               <div className="flex flex-col items-center justify-center p-4">
                 <Calendar
-                  mode="multiple"
-                  selected={attendanceDates}
+                  mode="single"
                   className="rounded-2xl border border-border/50 bg-background/20 backdrop-blur-md"
                   modifiers={{
-                    present: attendanceDates
+                    present: attendanceDates,
+                    absent: absentDates
                   }}
                   modifiersClassNames={{
-                    present: "bg-green-500/20 text-green-400 font-bold border-green-500/50"
+                    present: "bg-green-500/10 text-green-400",
+                    absent: "bg-red-500/10 text-red-400"
+                  }}
+                  classNames={{
+                    day_today: "ring-2 ring-primary ring-offset-2 ring-offset-background bg-accent/20 text-accent-foreground font-bold",
+                  }}
+                  components={{
+                    DayContent: ({ date }) => {
+                      const isPresent = attendanceDates.some(d => 
+                        d.getDate() === date.getDate() && 
+                        d.getMonth() === date.getMonth() && 
+                        d.getFullYear() === date.getFullYear()
+                      );
+                      
+                      const isAbsent = absentDates.some(d => 
+                        d.getDate() === date.getDate() && 
+                        d.getMonth() === date.getMonth() && 
+                        d.getFullYear() === date.getFullYear()
+                      );
+
+                      const isToday = new Date().toDateString() === date.toDateString();
+                      
+                      return (
+                        <div className="relative flex items-center justify-center w-full h-full p-0">
+                          <span className={cn(
+                            "z-10 text-sm",
+                            isToday ? "font-bold text-primary" : ""
+                          )}>
+                            {date.getDate()}
+                          </span>
+                          
+                          {isPresent && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+                              <CheckCircle2 className="h-4 w-4 text-green-500" />
+                            </div>
+                          )}
+                          
+                          {isPresent && (
+                            <div className="absolute top-0 right-0 p-0.5">
+                              <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
+                            </div>
+                          )}
+
+                          {isAbsent && (
+                            <div className="absolute top-0 right-0 p-0.5">
+                              <div className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
                   }}
                 />
-                <div className="mt-6 flex gap-6 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500/30 border border-green-500/50" />
-                    <span className="text-muted-foreground">Present</span>
+                <div className="mt-8 grid grid-cols-3 gap-4 text-[10px] font-bold uppercase tracking-widest">
+                  <div className="flex items-center gap-2 px-3 py-1.5 glass-card bg-green-500/5 border-green-500/20">
+                    <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" />
+                    <span className="text-green-400">Present</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-accent border border-border" />
-                    <span className="text-muted-foreground">Today</span>
+                  <div className="flex items-center gap-2 px-3 py-1.5 glass-card bg-red-500/5 border-red-500/20">
+                    <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]" />
+                    <span className="text-red-400">Absent</span>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1.5 glass-card bg-primary/5 border-primary/20">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-primary">Today</span>
                   </div>
                 </div>
               </div>
