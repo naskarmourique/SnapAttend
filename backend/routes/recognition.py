@@ -21,13 +21,13 @@ is_running = False
 camera_active = False
 state_lock = threading.Lock()
 
-async def recognition_loop(db_session_factory):
+async def recognition_loop(db_session_factory, started_by_id: str, started_by_role: str):
     global is_running
     # Track faces across frames: {roll: {"first_seen": time, "last_seen": time, "live_count": count}}
     active_faces = {}
     frame_counter = 0
 
-    print("\n[SYSTEM] Live Recognition & Liveness Monitoring Started...")
+    print(f"\n[SYSTEM] Live Recognition Started by {started_by_role} ({started_by_id})...")
 
     while True:
         with state_lock:
@@ -60,6 +60,12 @@ async def recognition_loop(db_session_factory):
                 roll = res["roll_number"]
                 score = res["confidence"]
 
+                # FIX: If started by a student, only allow recognition of themselves
+                if started_by_role == "student" and roll != started_by_id:
+                    # Optional: log attempt to mark someone else
+                    # print(f"[SECURITY] Student {started_by_id} tried to mark attendance for {roll}")
+                    continue
+
                 if roll not in active_faces:
                     # Initialize tracking
                     active_faces[roll] = {
@@ -74,7 +80,6 @@ async def recognition_loop(db_session_factory):
                 
                 # Simplified Attendance Logic:
                 # If we have seen them live at least once, mark attendance immediately.
-                # No need to wait 1.0 seconds, as DeepFace processing can cause delays.
                 if active_faces[roll]["live_frames"] >= 1:
                     from models.student_model import Student
                     student = db.query(Student).filter(Student.roll_number == roll).first()
@@ -114,7 +119,7 @@ def stop_camera(current_user: str = Depends(get_current_user)):
     return {"message": "Camera stopped"}
 
 @router.post("/start")
-async def start_recognition(background_tasks: BackgroundTasks, current_user: str = Depends(get_current_user)):
+async def start_recognition(background_tasks: BackgroundTasks, current_user = Depends(get_current_user)):
     global is_running, camera_active
     with state_lock:
         if is_running: return {"message": "Already running"}
@@ -122,8 +127,13 @@ async def start_recognition(background_tasks: BackgroundTasks, current_user: str
             raise HTTPException(status_code=500, detail="Camera fail")
         is_running = True
         camera_active = True
-    background_tasks.add_task(recognition_loop, get_db)
-    return {"message": "Recognition started"}
+    
+    # Identify who is starting the session
+    started_by_id = current_user.username if current_user.role == "admin" else current_user.roll_number
+    started_by_role = current_user.role
+
+    background_tasks.add_task(recognition_loop, get_db, started_by_id, started_by_role)
+    return {"message": f"Recognition started by {started_by_role}"}
 
 @router.post("/stop")
 def stop_recognition(current_user: str = Depends(get_current_user)):
