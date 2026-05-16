@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, LargeBinary
+from sqlalchemy import Column, Integer, String, LargeBinary, DateTime
 from config.database import Base
 from sqlalchemy.orm import relationship
+from datetime import datetime
 
 class Student(Base):
     __tablename__ = "students"
@@ -11,5 +12,6 @@ class Student(Base):
     department = Column(String(100))
     face_encoding = Column(LargeBinary)
     image_path = Column(String(255))
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     attendances = relationship("Attendance", back_populates="student", cascade="all, delete-orphan")

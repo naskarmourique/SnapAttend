@@ -20,6 +20,8 @@ export const studentApi = {
 export const attendanceApi = {
   getAll: () => api.get('/attendance/'),
   getStudent: (id: number) => api.get(`/attendance/${id}`),
+  manualMark: (id: number) => api.post(`/attendance/manual/mark?student_id=${id}`),
+  manualRemove: (id: number, date: string) => api.post(`/attendance/manual/remove?student_id=${id}&log_date=${date}`),
 };
 
 export const analyticsApi = {
@@ -29,7 +31,7 @@ export const analyticsApi = {
 };
 
 export const recognitionApi = {
-  start: () => api.post('/recognition/start'),
+  start: (studentId?: number) => api.post(`/recognition/start${studentId ? `?student_id=${studentId}` : ''}`),
   stop: () => api.post('/recognition/stop'),
   getStatus: () => api.get('/recognition/status'),
   startCamera: () => api.post('/recognition/camera/start'),

@@ -99,17 +99,41 @@ class FaceService:
             return None
         return np.mean(all_embeddings, axis=0).tolist()
 
+    def check_duplicate_face(self, new_encoding: list, threshold: float = 0.40):
+        """Checks if a face already exists in the database. Returns (is_duplicate, name, roll)"""
+        if not self.embeddings_cache:
+            return False, None, None
+            
+        new_vec = np.array(new_encoding)
+        best_sim = -1.0
+        best_match = None
+        
+        for roll, data in self.embeddings_cache.items():
+            cached_vec = np.array(data["embedding"])
+            # Cosine Similarity
+            sim = np.dot(new_vec, cached_vec) / (np.linalg.norm(new_vec) * np.linalg.norm(cached_vec))
+            
+            if sim > best_sim:
+                best_sim = sim
+                best_match = (data["name"], roll)
+                
+        if best_sim > threshold:
+            return True, best_match[0], best_match[1]
+            
+        return False, None, None
+
     def recognize_faces(self, frame: np.ndarray):
         if not self.is_loaded or not self.embeddings_cache:
             return []
 
         recognized_students = []
-        # Preprocessing is CRITICAL for MediaPipe stability
-        processed_frame = self.preprocess_image(frame)
+        
+        # Optimization: Resize frame to lower resolution for faster processing
+        # 320px width is usually enough for face detection and recognition
+        small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
+        processed_frame = self.preprocess_image(small_frame)
         
         try:
-            # MediaPipe detector can be sensitive; we ensure enforce_detection=False
-            # so it doesn't crash if a face is partially obscured.
             face_objs = DeepFace.represent(
                 img_path=processed_frame,
                 model_name=self.model_name,

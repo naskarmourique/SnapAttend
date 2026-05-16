@@ -10,6 +10,7 @@ import AdminPanel from "./pages/AdminPanel";
 import StudentRegistration from "./pages/StudentRegistration";
 import NotFound from "./pages/NotFound";
 import AppLayout from "./components/AppLayout";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -27,12 +28,17 @@ const App = () => (
         <Sonner position="top-right" expand={false} richColors />
         <BrowserRouter>
           <Routes>
+            {/* The Index page is full-screen without Sidebar */}
+            <Route path="/" element={<Index />} />
+            
+            {/* Internal pages use the Sidebar layout */}
             <Route element={<LayoutWrapper />}>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/student" element={<StudentPanel />} />
               <Route path="/admin" element={<AdminPanel />} />
               <Route path="/registration" element={<StudentRegistration />} />
             </Route>
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

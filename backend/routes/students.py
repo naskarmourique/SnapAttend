@@ -34,6 +34,14 @@ async def register_student(
     if encoding is None:
         raise HTTPException(status_code=400, detail="No face detected in the provided images")
 
+    # Check for Duplicate Face
+    is_dup, dup_name, dup_roll = face_service.check_duplicate_face(encoding)
+    if is_dup:
+        raise HTTPException(
+            status_code=409, 
+            detail=f"Face already registered under: {dup_name} (Roll: {dup_roll}). Registration denied to prevent duplication."
+        )
+
     # Create student-specific directory
     upload_dir = f"uploads/students/{roll_number}"
     os.makedirs(upload_dir, exist_ok=True)
@@ -68,7 +76,7 @@ def get_students(db: Session = Depends(get_db)):
     print("[API] GET /students - Fetching all students")
     students = db.query(Student).all()
     print(f"[API] Found {len(students)} students")
-    return [{"id": s.id, "name": s.name, "roll_number": s.roll_number, "department": s.department} for s in students]
+    return [{"id": s.id, "name": s.name, "roll_number": s.roll_number, "department": s.department, "created_at": s.created_at} for s in students]
 
 @router.delete("/{student_id}")
 def delete_student(student_id: int, db: Session = Depends(get_db)):

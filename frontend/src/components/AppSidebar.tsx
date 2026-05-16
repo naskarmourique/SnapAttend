@@ -1,4 +1,4 @@
-import { NavLink as RouterNavLink, Link } from "react-router-dom";
+import { NavLink as RouterNavLink, Link, useNavigate } from "react-router-dom";
 import { useTheme } from "@/hooks/useTheme";
 import {
   LayoutDashboard,
@@ -10,11 +10,12 @@ import {
   ScanFace,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/student", label: "Student Panel", icon: User },
   { to: "/admin", label: "Admin Panel", icon: ShieldCheck },
   { to: "/registration", label: "Registration", icon: Camera },
@@ -23,11 +24,29 @@ const navItems = [
 export default function AppSidebar() {
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const role = localStorage.getItem("user_role");
+
+  const filteredNavItems = navItems.filter(item => {
+    if (role === "student") {
+      // Students only see Dashboard and Student Panel
+      return item.to === "/dashboard" || item.to === "/student";
+    }
+    // Admins see everything
+    return true;
+  });
+
+  const handleLogout = () => {
+    localStorage.removeItem("user_role");
+    localStorage.removeItem("student_roll");
+    navigate("/");
+  };
 
   const sidebarContent = (
     <div className="flex flex-col h-full bg-background/80 backdrop-blur-xl">
       {/* Logo */}
-      <Link to="/" className="flex items-center gap-3 px-5 py-6 hover:opacity-80 transition-opacity">
+      <Link to="/dashboard" className="flex items-center gap-3 px-5 py-6 hover:opacity-80 transition-opacity">
         <div className="glass-card-glow p-2">
           <ScanFace className="h-6 w-6 text-primary" />
         </div>
@@ -38,7 +57,7 @@ export default function AppSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 space-y-2 mt-4 overflow-y-auto">
-        {navItems.map((item) => (
+        {filteredNavItems.map((item) => (
           <RouterNavLink
             key={item.to}
             to={item.to}
@@ -60,8 +79,8 @@ export default function AppSidebar() {
         ))}
       </nav>
 
-      {/* Theme toggle */}
-      <div className="px-4 pb-6">
+      {/* Footer Actions */}
+      <div className="px-4 pb-6 space-y-2">
         <button
           onClick={toggleTheme}
           className="glass-card flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"
@@ -72,6 +91,14 @@ export default function AppSidebar() {
             <Moon className="h-5 w-5" />
           )}
           <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="glass-card flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 transition-all duration-200 cursor-pointer"
+        >
+          <LogOut className="h-5 w-5" />
+          <span>Logout</span>
         </button>
       </div>
     </div>

@@ -5,6 +5,8 @@ from models.attendance_model import Attendance
 from models.student_model import Student
 from datetime import date
 
+from services.attendance_service import attendance_service
+
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 @router.get("/")
@@ -23,5 +25,24 @@ def get_all_attendance(db: Session = Depends(get_db)):
 
 @router.get("/{student_id}")
 def get_student_attendance(student_id: int, db: Session = Depends(get_db)):
-    attendances = db.query(Attendance).filter(Attendance.student_id == student_id).all()
-    return attendances
+    return db.query(Attendance).filter(Attendance.student_id == student_id).all()
+
+@router.post("/manual/mark")
+def manual_mark(student_id: int, db: Session = Depends(get_db)):
+    attendance_service.mark_attendance(db, student_id, 1.0)
+    return {"message": "Attendance marked manually"}
+
+@router.post("/manual/remove")
+def manual_remove(student_id: int, log_date: str, db: Session = Depends(get_db)):
+    from datetime import datetime
+    try:
+        target_date = datetime.strptime(log_date, '%Y-%m-%d').date()
+    except:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        
+    db.query(Attendance).filter(
+        Attendance.student_id == student_id,
+        Attendance.date == target_date
+    ).delete()
+    db.commit()
+    return {"message": "Attendance record removed"}

@@ -19,13 +19,13 @@ is_running = False
 camera_active = False
 state_lock = threading.Lock()
 
-async def recognition_loop(db_session_factory):
+async def recognition_loop(db_session_factory, target_student_id: int = None):
     global is_running
     # Track faces across frames: {roll: {"first_seen": time, "last_seen": time, "live_count": count}}
     active_faces = {}
     frame_counter = 0
 
-    print("\n[SYSTEM] Live Recognition & Liveness Monitoring Started...")
+    print(f"\n[SYSTEM] {'Targeted' if target_student_id else 'General'} Recognition Started...")
 
     while True:
         with state_lock:
@@ -38,16 +38,18 @@ async def recognition_loop(db_session_factory):
             continue
             
         frame_counter += 1
-        # Process every 2nd frame for better speed
-        if frame_counter % 2 != 0:
-            await asyncio.sleep(0.01)
+        # Process every 8th frame for better speed (approx 1 time per second)
+        # This reduces CPU load significantly while maintaining responsiveness
+        if frame_counter % 8 != 0:
+            await asyncio.sleep(0.05)
             continue
 
         # 1. Perform Multi-Face Recognition
-        recognized_results = face_service.recognize_faces(frame)
+        # We wrap this in a thread because DeepFace is CPU-heavy and blocks the event loop
+        loop = asyncio.get_event_loop()
+        recognized_results = await loop.run_in_executor(None, face_service.recognize_faces, frame)
         
-        # 2. Check Liveness for the whole frame (simplification)
-        # In a high-end system, we'd check each face's ROI
+        # 2. Check Liveness
         is_live = liveness_service.detect_liveness(frame)
         
         current_time = time.time()
@@ -57,6 +59,14 @@ async def recognition_loop(db_session_factory):
             for res in recognized_results:
                 roll = res["roll_number"]
                 score = res["confidence"]
+
+                # Targeted Check: If a target_student_id is provided, only process that student
+                from models.student_model import Student
+                student = db.query(Student).filter(Student.roll_number == roll).first()
+                if not student: continue
+                
+                if target_student_id and student.id != target_student_id:
+                    continue
 
                 if roll not in active_faces:
                     # Initialize tracking
@@ -71,17 +81,12 @@ async def recognition_loop(db_session_factory):
                         active_faces[roll]["live_frames"] += 1
                 
                 # Simplified Attendance Logic:
-                # If we have seen them live at least once, mark attendance immediately.
-                # No need to wait 1.0 seconds, as DeepFace processing can cause delays.
                 if active_faces[roll]["live_frames"] >= 1:
-                    from models.student_model import Student
-                    student = db.query(Student).filter(Student.roll_number == roll).first()
-                    if student: 
-                        marked = attendance_service.mark_attendance(db, student.id, score)
-                        if marked:
-                            print(f"[SUCCESS] Attendance Recorded: {student.name} ({roll})")
-                            # Prevent spamming the DB for this roll in this session
-                            active_faces[roll]["live_frames"] = -9999 
+                    marked = attendance_service.mark_attendance(db, student.id, score)
+                    if marked:
+                        print(f"[SUCCESS] Attendance Recorded: {student.name} ({roll})")
+                        # Prevent spamming the DB for this roll in this session
+                        active_faces[roll]["live_frames"] = -9999 
                 elif frame_counter % 10 == 0:
                     print(f"[WARNING] Spoof Attempt or Poor Lighting for {roll}")
             
@@ -112,7 +117,7 @@ def stop_camera():
     return {"message": "Camera stopped"}
 
 @router.post("/start")
-async def start_recognition(background_tasks: BackgroundTasks):
+async def start_recognition(background_tasks: BackgroundTasks, student_id: int = None):
     global is_running, camera_active
     with state_lock:
         if is_running: return {"message": "Already running"}
@@ -120,7 +125,7 @@ async def start_recognition(background_tasks: BackgroundTasks):
             raise HTTPException(status_code=500, detail="Camera fail")
         is_running = True
         camera_active = True
-    background_tasks.add_task(recognition_loop, get_db)
+    background_tasks.add_task(recognition_loop, get_db, student_id)
     return {"message": "Recognition started"}
 
 @router.post("/stop")
